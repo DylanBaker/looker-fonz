@@ -307,6 +307,7 @@ class Project(LookMlObject):
     def __init__(self, name: str, models: Sequence[Model]) -> None:
         self.name = name
         self.models = models
+        self._is_complete = False
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Project):
@@ -343,6 +344,14 @@ class Project(LookMlObject):
                         yield dimension
                 else:
                     yield dimension
+
+    @property
+    def is_complete_project(self) -> bool:
+        return self._is_complete
+
+    @is_complete_project.setter
+    def is_complete_project(self, value: bool) -> None:
+        self._is_complete = value
 
     @property
     def errored(self) -> Optional[bool]:
@@ -507,28 +516,45 @@ async def build_project(
     include_dimensions: bool = False,
     ignore_hidden_fields: bool = False,
     include_all_explores: bool = False,
+    get_full_project: bool = True,
 ) -> Project:
     """Creates an object (tree) representation of a LookML project."""
     if filters is None:
         filters = ["*/*"]
+    is_complete_project = False
 
-    models = []
-    fields = ["name", "project_name", "explores"]
-    for lookmlmodel in await client.get_lookml_models(fields=fields):
-        model = Model.from_json(lookmlmodel)
-        if model.project_name == name:
-            models.append(model)
+    if get_full_project:
+        models = []
+        fields = ["name", "project_name", "explores"]
+        for lookmlmodel in await client.get_lookml_models(fields=fields):
+            model = Model.from_json(lookmlmodel)
+            if model.project_name == name:
+                models.append(model)
 
-    if not models:
-        raise LookMlNotFound(
-            name="project-models-not-found",
-            title="No configured models found for the specified project.",
-            detail=(
-                f"Go to {client.base_url}/projects and confirm "
-                "a) at least one model exists for the project and "
-                "b) it has an active configuration."
-            ),
-        )
+        if not models:
+            raise LookMlNotFound(
+                name="project-models-not-found",
+                title="No configured models found for the specified project.",
+                detail=(
+                    f"Go to {client.base_url}/projects and confirm "
+                    "a) at least one model exists for the project and "
+                    "b) it has an active configuration."
+                ),
+            )
+        is_complete_project = True
+
+    else:
+        # Create a project with only the models specified in the filters
+        logger.debug("Building project with only the filtered models")
+        models: Dict[str, Model] = {}
+        for filter in filters:
+            model, explore = filter.split("/")
+            if model not in models:
+                models[model] = Model(name=model, project_name=name, explores=[])
+            if explore not in models[model].explores:
+                models[model].explores.append(Explore(name=explore, model_name=model))
+        project = Project(name=name, models=models.values())
+        models = project.models
 
     # Prune to selected explores for non-content validators
     if not include_all_explores:
@@ -555,4 +581,6 @@ async def build_project(
     else:
         project = Project(name, [m for m in models if len(m.explores) > 0])
 
+    # Indicates whether the project has all of the models/explores or just the selected ones
+    project.is_complete_project = is_complete_project
     return project

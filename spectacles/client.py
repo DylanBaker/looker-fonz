@@ -66,17 +66,26 @@ class AccessToken:
         return False if time.time() < self.expires_at else True
 
 
+def log_backoff(details: dict) -> None:
+    logger.debug(
+        f"Backing off {details['wait']:0.1f} seconds after {details['tries']} tries. "
+        f"Error: {details['exception'].__class__.__name__}"
+    )
+
+
 def backoff_with_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
     @backoff.on_exception(
         backoff.expo,
         STATUS_EXCEPTIONS,
         giveup=giveup_unless_bad_gateway,
         max_tries=DEFAULT_RETRIES,
+        on_backoff=log_backoff,
     )
     @backoff.on_exception(
         backoff.expo,
         NETWORK_EXCEPTIONS,
         max_tries=DEFAULT_NETWORK_RETRIES,
+        on_backoff=log_backoff,
     )
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         if asyncio.iscoroutinefunction(func):
@@ -708,6 +717,9 @@ class LookerClient:
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as error:
+            logger.info(
+                f"Error code: {response.status_code} for url {url} response: {response.text}"
+            )
             raise LookerApiError(
                 name="unable-to-get-dimension-lookml",
                 title="Couldn't retrieve dimensions.",

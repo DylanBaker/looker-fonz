@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from spectacles.client import LOOKML_VALIDATION_TIMEOUT, LookerClient
 from spectacles.exceptions import LookerApiError, SpectaclesException, SqlError
 from spectacles.logger import GLOBAL_LOGGER as logger
-from spectacles.lookml import CompiledSql, Explore, build_project
+from spectacles.lookml import CompiledSql, Explore, build_project, Project
 from spectacles.models import JsonDict, SkipReason
 from spectacles.printer import print_header
 from spectacles.utils import time_hash
@@ -355,6 +355,10 @@ class Runner:
     ) -> JsonDict:
         if filters is None:
             filters = ["*/*"]
+        else:
+            # Only build the full project from the API if we're using a wildcard filter and not in incremental mode
+            get_full_project = any("*" in f for f in filters) or incremental
+
         validator = SqlValidator(self.client, concurrency, runtime_threshold)
         ephemeral = True if incremental else None
         # Create explore-level tests for the desired ref
@@ -367,6 +371,7 @@ class Runner:
                 filters=filters,
                 include_dimensions=True,
                 ignore_hidden_fields=ignore_hidden_fields,
+                get_full_project=get_full_project,
             )
             base_explores: Set[CompiledSql] = set()
             if incremental:
@@ -532,8 +537,16 @@ class Runner:
         exclude_personal: bool = False,
         folders: Optional[List[str]] = None,
     ) -> JsonDict:
-        if filters is None:
-            filters = ["*/*"]
+        logger.debug(
+            f"Validating content. ref={ref}, filters={filters}, incremental={incremental}",
+        )
+        if filters is not None or filters == ["*/*"]:
+            # Only build the full project from the API if we're using a wildcard filter and not in incremental mode
+            get_full_project = any("*" in f for f in filters if f != "*/*") or (
+                not incremental
+            )
+            logger.debug(f"get_full_project = {get_full_project}")
+
         if folders is None:
             folders = []
 
