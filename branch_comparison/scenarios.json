@@ -1,0 +1,105 @@
+[
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-errors",
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-errors",
+            "filters": [
+                "ecomm/dim_products"
+            ],
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-errors",
+            "filters": [
+                "*/*"
+            ],
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-errors",
+            "fail_fast": true
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-errors",
+            "incremental": true,
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-incremental-fix",
+            "incremental": true,
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-incremental-fix",
+            "incremental": true,
+            "target": "async-errors",
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-new-explore",
+            "incremental": true,
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-new-explore",
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-incremental-changes",
+            "incremental": true,
+            "target": "async-errors",
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "looker-demo",
+        "validation_args": {
+            "ref": "async-does-not-exist",
+            "fail_fast": false
+        }
+    },
+    {
+        "project_name": "spectacles",
+        "validation_args": {
+            "ref": "charter-demo-3",
+            "fail_fast": false
+        }
+    }
+]
